@@ -113,15 +113,6 @@
     <Compile Include="LM75A.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="twi\twi.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="twi\twi.h">
-      <SubType>compile</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="twi" />
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
 </Project>
