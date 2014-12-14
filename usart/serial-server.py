@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial(2, 2400, timeout=1)
+ser = serial.Serial(4, 2400, timeout=1)
 
 last = ""
 

@@ -14,8 +14,8 @@
 #define UART_BUFFER_OVERFLOW 0x02 // ringbuffer overflow
 #define UART_NO_DATA         0x01 // no data recieved
 
-#define UART_RX_BUF_SIZE 8
-#define UART_TX_BUF_SIZE 8
+#define UART_RX_BUF_SIZE 64
+#define UART_TX_BUF_SIZE 64
 
 #define UART_RX_BUF_MASK (UART_RX_BUF_SIZE - 1)
 #define UART_TX_BUF_MASK (UART_TX_BUF_SIZE - 1)
