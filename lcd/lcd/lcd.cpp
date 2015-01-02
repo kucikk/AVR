@@ -66,14 +66,14 @@ void blink (uint8_t count, uint32_t delay) {
  * BLINK - 500ms delay
  */
 void blink (uint8_t count) {
-	blink(count, 150);
+	blink(count, 200);
 }
 
 /**
  * BLINK - 3 times, 100ms delay
  */
 void blink () {
-	blink(3, 100);
+	blink(3, 200);
 }
 
 
@@ -96,14 +96,14 @@ void blink2 (uint8_t count, uint32_t delay) {
  * BLINK2 - 500ms delay
  */
 void blink2 (uint8_t count) {
-	blink2(count, 100);
+	blink2(count, 200);
 }
 
 /**
  * BLINK2 - 3 times, 100ms delay
  */
 void blink2 () {
-	blink2(3, 100);
+	blink2(3, 200);
 }
 
 
@@ -126,7 +126,7 @@ void blink3 (uint8_t count, uint32_t delay) {
  * BLINK3 - 500ms delay
  */
 void blink3 (uint8_t count) {
-	blink3(count, 500);
+	blink3(count, 100);
 }
 
 /**
@@ -150,158 +150,123 @@ void toggleLed3 () {
 
 
 
-/**
- * LCD TEST
- */
-bool test (TWI twi) {
-	
-	toggleLed3();
-	twi.start();// S - Start
-	if (!twi.statusIs(TW_START)) {// je I2C nastartováno?
-		return 1;
-	}
-	//blink2(1);
-	
-	toggleLed3();
-	twi.write(DEV_ADDR << 1);// pošle SLA+W (slave address + write bit = poslední bit je nula)
-	if (!twi.statusIs(TW_MT_SLA_ACK)) {
-		return 2;
-	}
-	//blink2(2);
-
-	//init
-	toggleLed3();
-	twi.write(0b00100011);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 3;
-	}
-	//blink2(3);
-	//wait_ms(3);
-	
-	toggleLed3();
-	twi.write(0b00000011);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 4;
-	}
-	//blink2(4);
-	wait_ms(2);
-	
-	toggleLed3();
-	twi.write(0b00100011);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 5;
-	}
-	//blink2(5);
-	wait_ms(1);
-	
-	toggleLed3();
-	twi.write(0b00000011);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 6;
-	}
-	//blink2(6);
-	
-	toggleLed3();
-	twi.write(0b00000011);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 7;
-	}
-	//blink2(7);
-	
-	// 4 bitová instrukce najednou - nastavuje komunikaci na 4-bitovou
-	toggleLed3();
-	twi.write(0b00000010);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 8;
-	}
-	//blink2(8);
 
 
-	// nastavení displeje
-	toggleLed3();
-	twi.write(0b00000010);//(RS, R/W, E, ?, D4, D5, D6=1, D7=4bit data length)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 9;
-	}
+uint8_t LCDSendNibble(TWI twi, bool rs, bool rw, uint8_t nibble) {
 	
-	twi.write(0b00001000);//(RS, R/W, E, ?, D4=2 řádky, D5=5x8 font, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 10;
-	}
-	//blink(1);
-
-
-	// display on/off, cursor
-	toggleLed3();
-	twi.write(0b00000000);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 11;
-	}
+	uint8_t byte = 0x0f & nibble;
+	if (rw) byte |= 1 << 6;
+	if (rs) byte |= 1 << 7;
 	
-	twi.write(0b00001111);//(RS, R/W, E, ?, D4=1, D5=display on, D6=cursor on, D7=blinking cursor)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 12;
-	}
-	//blink(2);
-
-
-	// display clear
-	toggleLed3();
-	twi.write(0b00000000);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 13;
-	}
+	twi.write(byte);//(RS, R/W, E=0, ?, D4, D5, D6, D7)
+	if (!twi.statusIs(TW_MT_DATA_ACK)) return 1;
 	
-	twi.write(0b00000001);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 14;
-	}
-	//blink(3);
+	twi.write(byte | (1 << 5));//(RS, R/W, E=1, ?, D4, D5, D6, D7)
+	if (!twi.statusIs(TW_MT_DATA_ACK)) return 2;
 	
-	
-	// entry mode set - cursor move direction, display shift
-	toggleLed3();
-	twi.write(0b00000000);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 15;
-	}
-
-	twi.write(0b00000110);//(RS, R/W, E, ?, D4, D5=1, D6=inc/decrement, D7=accompanies display shift)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 16;
-	}
-	//blink(4);
-
-
-	// write H
-	toggleLed3();
-	twi.write(0b10000100);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 15;
-	}
-	
-	twi.write(0b10001000);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 16;
-	}
-	//blink(4);
-
-
-	// write I
-	toggleLed3();
-	twi.write(0b10000100);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 15;
-	}
-	
-	twi.write(0b10001001);//(RS, R/W, E, ?, D4, D5, D6, D7)
-	if (!twi.statusIs(TW_MT_DATA_ACK)) {
-		return 16;
-	}
-	blink(5);
-		
-	return SUCCESS;
+	return 0;
 }
+
+
+uint8_t LCDSendByte(TWI twi, bool rs, bool rw, uint8_t byte) {
+	
+	if (LCDSendNibble(twi, rs, rw, byte >> 4)) return 1;
+	
+	if (LCDSendNibble(twi, rs, rw, byte & 0x0f)) return 2;
+	
+	return 0;
+}
+
+
+uint8_t LCDInit(TWI twi) {
+	
+	twi.start();
+	if (!twi.statusIs(TW_START)) return 1;
+
+	twi.write(DEV_ADDR << 1);// pošle SLA+W (slave address + write bit = poslední bit je nula)
+	if (!twi.statusIs(TW_MT_SLA_ACK)) return 2;
+	
+	return 0;
+}
+
+
+uint8_t LCDSetup(TWI twi) {
+	
+	blink();
+	
+	toggleLed3();
+	// nastaví 4-bitovou komunikaci
+	if (LCDSendNibble(twi, 0, 0, 0b0010))//0, 0, 1, 4bit
+		return 1;
+	wait_ms(500);
+	
+	blink();
+	
+	toggleLed3();
+	// potvrdí 4 bitovou komunikaci a nastaví vlastnosti displeje
+	if (LCDSendByte(twi, 0, 0, 0b00101000))//0, 0, 1, 4bit, 2 lines, font 5x8,-,-
+		return 2;
+	wait_ms(500);
+	
+	toggleLed3();
+	// zapne displej, kurzor, blikání kurzoru
+	if (LCDSendByte(twi, 0, 0, 0b00001111))//0, 0, 0, 0, 1, display on, cursor on, blinking cursor
+		return 3;
+	wait_ms(500);
+	
+	toggleLed3();
+	// zastaví posuv kurzoru
+	if (LCDSendByte(twi, 0, 0, 0b00000110))//0, 0, 0, 0, 0, 1, increment/decrement, scroll display while writing
+		return 4;
+	wait_ms(500);
+		
+	return 0;
+}
+
+
+uint8_t LCDWrite(TWI twi) {
+	
+	blink();
+	
+	toggleLed3();
+	// napíše H
+	if (LCDSendByte(twi, 1, 0, 0b01001000))
+		return 1;
+	wait_ms(500);
+	
+	toggleLed3();
+	// napíše I
+	if (LCDSendByte(twi, 1, 0, 0b01001001))
+		return 2;
+	wait_ms(500);
+	
+	toggleLed3();
+	// napíše H
+	if (LCDSendByte(twi, 1, 0, 0b01001000))
+		return 3;
+	wait_ms(500);
+	
+	toggleLed3();
+	// napíše I
+	if (LCDSendByte(twi, 1, 0, 0b01001001))
+		return 4;
+	wait_ms(500);
+	
+	toggleLed3();
+	// napíše H
+	if (LCDSendByte(twi, 1, 0, 0b01001000))
+		return 5;
+	wait_ms(500);
+	
+	toggleLed3();
+	// napíše I
+	if (LCDSendByte(twi, 1, 0, 0b01001001))
+		return 6;
+	wait_ms(500);
+	
+	return 0;
+}
+
 
 
 /**
@@ -336,18 +301,28 @@ int main (void) {
 	
 	DDRB = 0xff;
 	PORTB = 0x00;
+	uint8_t status;
 	
 	twi.init();
 	
-	wait_ms(100);//pro jistotu
+	wait_ms(100);// pro jistotu kvůli inicializaci LCD
+	
+	
+	LEDInit();
+	
+	status = LCDInit(twi);
+	if (status) blink2(status);
 	
     while(1) {
-		LEDInit();
-		if (test(twi) == ERROR) {
-			wait_ms(500);
-			blink();
-		}
-		twi.stop();
+	    LEDInit();
+				
+		status = LCDSetup(twi);
+		if (status) blink2(status);
+		
+		status = LCDWrite(twi);
+		if (status) blink2(status);
+		
 		wait_ms(5000);
     }
+    twi.stop();
 }
