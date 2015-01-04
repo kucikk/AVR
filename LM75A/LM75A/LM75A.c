@@ -18,6 +18,9 @@
 #define LEDBAR_ADDR 0b0100000
 #define ERROR 1
 #define SUCCESS 0
+#define STATUS_LED_PORT PORTB
+#define STATUS_LED_DDR DDRB
+#define STATUS_LED PB1
 
 /**
  * Inicializace I2C rozhraní. Volá se pouze jednou.
@@ -150,34 +153,22 @@ uint8_t sendToLEDBar (uint8_t data) {
 }
 
 
-
 /**
  * Nastaví piny pro ledky jako výstup
  */
 void LEDInit (void) {
-	DDRB = 0x0e;
-	PORTB = 0x00;
+	STATUS_LED_DDR = 0x0e;
+	STATUS_LED_PORT = 0x00;
 }
-
-
 
 /**
  * Postupně zosvítí a zhasne všechny ledky
  */
 void LEDTest (void) {
-	PORTB |= 1 << PB1;
+	STATUS_LED_PORT |= 1 << STATUS_LED;
 	_delay_ms(500);
-	PORTB &= ~(1 << PB1);
-	
-	PORTB |= 1 << PB2;
-	_delay_ms(500);
-	PORTB &= ~(1 << PB2);
-	
-	PORTB |= 1 << PB3;
-	_delay_ms(500);
-	PORTB &= ~(1 << PB3);
+	STATUS_LED_PORT &= ~(1 << STATUS_LED);
 }
-
 
 /**
  * hlavní smyčka (překvapivě)
@@ -194,84 +185,53 @@ int main(void) {
 	TWIInit();
 	
 	while(1) {
-		PORTB &= ~(1 << PB1);
+		STATUS_LED_PORT &= ~(1 << STATUS_LED);
 		
 		
 		// získání dat z teplotního čidla
 		status = getTemp(&temp_hi, &temp_lo);
 		if (status) {
 			TWIStop();
-			
-			PORTB |= (1 << PB1);
-			PORTB |= (1 << PB3);
-			
 			for (uint8_t i = 0; i < status; i++) {
-				PORTB |= (1 << PB2);
+				STATUS_LED_PORT |= (1 << STATUS_LED);
 				_delay_ms(250);
 				
-				PORTB &= ~(1 << PB2);
+				STATUS_LED_PORT &= ~(1 << STATUS_LED);
 				_delay_ms(250);
 			}
 			continue;
 		}
 		
-		
-		
-		// poslání dat na LEDBar
-		status = sendToLEDBar(temp_hi);
-		if (status) {
-			TWIStop();
-			
-			PORTB |= (1 << PB1);
-			PORTB |= (1 << PB3);
-			
-			for (uint8_t i = 0; i < status; i++) {
-				PORTB |= (1 << PB2);
-				_delay_ms(250);
-				
-				PORTB &= ~(1 << PB2);
-				_delay_ms(250);
-			}
-			
-			_delay_ms(1000);
-		}
-		
-		
-		
-		
-		// celá část teploty (<počet bliknutí> * 1°C)
-		PORTB &= ~(1 << PB3);
+		uint8_t data = 0x00;
 		
 		if (temp_hi >= 20) {
-			temp_hi -= 20;
-			PORTB |= (1 << PB2);
-		} else {
-			PORTB &= ~(1 << PB2);
+			switch (temp_hi - 20) {
+				case 0x00: data = 0b0000000000; break;
+				case 0x01: data = 0b0000000001; break;
+				case 0x02: data = 0b0000000011; break;
+				case 0x03: data = 0b0000000111; break;
+				case 0x04: data = 0b0000001111; break;
+				case 0x05: data = 0b0000011111; break;
+				case 0x06: data = 0b0000111111; break;
+				case 0x07: data = 0b0001111111; break;
+				case 0x08: data = 0b0011111111; break;
+				case 0x09: data = 0b0111111111; break;
+				default:   data = 0b1111111111; break;
+			}
 		}
 		
-		for (uint8_t i = 0; i < temp_hi; i++) {
-			PORTB |= (1 << PB3);
-			_delay_ms(250);
-			
-			PORTB &= ~(1 << PB3);
-			_delay_ms(250);
+		// poslání dat na LEDBar
+		status = sendToLEDBar(data);
+		if (status) {
+			TWIStop();
+			for (uint8_t i = 0; i < status; i++) {
+				STATUS_LED_PORT |= (1 << STATUS_LED);
+				_delay_ms(250);
+				
+				STATUS_LED_PORT &= ~(1 << STATUS_LED);
+				_delay_ms(250);
+			}
 		}
 		
-		_delay_ms(1000);
-		
-		
-		
-		// desetinná část teploty (<počet bliknutí> * 0,125°C)
-		PORTB &= ~(1 << PB2);
-		
-		for (uint8_t i = 0; i < temp_lo >> 5; i++) {
-			PORTB |= (1 << PB3);
-			_delay_ms(250);
-			
-			PORTB &= ~(1 << PB3);
-			_delay_ms(250);
-		}
-	
-		_delay_ms(1000);
     }
 }
