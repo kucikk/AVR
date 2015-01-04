@@ -26,37 +26,37 @@
 /**
  * Pokusí se přečíst teplotu z čidla
  */
-uint8_t getTemp (TWI twi, uint8_t *temp_hi, uint8_t *temp_lo) {
+uint8_t getTemp (uint8_t *temp_hi, uint8_t *temp_lo) {
 	
-	twi.start();// S - Start
-	if (!twi.statusIs(TW_START))// je I2C nastartováno?
+	twi::start();// S - Start
+	if (!twi::statusIs(TW_START))// je I2C nastartováno?
 		return 1;
 	
-	twi.write(LM75A_ADDR << 1);// pošle SLA+W (slave address + write bit = poslední bit je nula)
-	if (!twi.statusIs(TW_MT_SLA_ACK))
+	twi::write(LM75A_ADDR << 1);// pošle SLA+W (slave address + write bit = poslední bit je nula)
+	if (!twi::statusIs(TW_MT_SLA_ACK))
 		return 2;
 	
-	twi.write(0x00);// Data - nastavení pointeru na 0x00 = čtení teploty
-	if (!twi.statusIs(TW_MT_DATA_ACK))
+	twi::write(0x00);// Data - nastavení pointeru na 0x00 = čtení teploty
+	if (!twi::statusIs(TW_MT_DATA_ACK))
 		return 3;
 	
-	twi.start();// Rs - Repeated start
-	if (!twi.statusIs(TW_REP_START))
+	twi::start();// Rs - Repeated start
+	if (!twi::statusIs(TW_REP_START))
 		return 4;
 	
-	twi.write((LM75A_ADDR << 1) | 1);// pošle SLA+R  (slave address + read bit = poslední bit je nula)
-	if (!twi.statusIs(TW_MR_SLA_ACK))
+	twi::write((LM75A_ADDR << 1) | 1);// pošle SLA+R  (slave address + read bit = poslední bit je nula)
+	if (!twi::statusIs(TW_MR_SLA_ACK))
 		return 5;
 	
-	*temp_hi = twi.readACK();// načte MSB (důležitější bajt) - celá část teploty = poměrně zajímavé číslo
-	if (!twi.statusIs(TW_MR_DATA_ACK))
+	*temp_hi = twi::readACK();// načte MSB (důležitější bajt) - celá část teploty = poměrně zajímavé číslo
+	if (!twi::statusIs(TW_MR_DATA_ACK))
 		return 6;
 	
-	*temp_lo = twi.readNACK();//načte LSB (méně důležitý bajt) - desetinná část teploty
-	if (!twi.statusIs(TW_MR_DATA_NACK))
+	*temp_lo = twi::readNACK();//načte LSB (méně důležitý bajt) - desetinná část teploty
+	if (!twi::statusIs(TW_MR_DATA_NACK))
 		return 7;
 	
-	twi.stop();
+	twi::stop();
 	
 	return SUCCESS;
 }
@@ -65,21 +65,21 @@ uint8_t getTemp (TWI twi, uint8_t *temp_hi, uint8_t *temp_lo) {
 /**
  * Komunikace s LEDBarem
  */
-uint8_t sendToLEDBar (TWI twi, uint8_t data) {
+uint8_t sendToLEDBar (uint8_t data) {
 	
-	twi.start();//S -start
-	if (!twi.statusIs(TW_START))
+	twi::start();//S -start
+	if (!twi::statusIs(TW_START))
 		return 1;
 	
-	twi.write(LEDBAR_ADDR << 1);// pošle SLA+W (slave address + write bit)
-	if (!twi.statusIs(TW_MT_SLA_ACK))
+	twi::write(LEDBAR_ADDR << 1);// pošle SLA+W (slave address + write bit)
+	if (!twi::statusIs(TW_MT_SLA_ACK))
 		return 2;
 	
-	twi.write(data);// pošle data k zobrazení
-	if (!twi.statusIs(TW_MT_DATA_NACK))
+	twi::write(data);// pošle data k zobrazení
+	if (!twi::statusIs(TW_MT_DATA_NACK))
 		return 3;
 	
-	twi.stop();
+	twi::stop();
 	
 	return SUCCESS;
 }
@@ -104,8 +104,6 @@ void LEDTest (void) {
 
 
 int main(void) {
-	TWI twi(F_CPU, SCL_CLOCK);
-	
 	uint8_t temp_hi = 0;
 	uint8_t temp_lo = 0;
 	uint8_t status;
@@ -113,14 +111,14 @@ int main(void) {
 	LEDInit();
 	LEDTest();
 	
-	twi.init();
+	twi::init(F_CPU, SCL_CLOCK);
 	
 	while(1) {
 		
 		// získání dat z teplotního čidla
-		status = getTemp(twi, &temp_hi, &temp_lo);
+		status = getTemp(&temp_hi, &temp_lo);
 		if (status) {
-			twi.stop();
+			twi::stop();
 			for (uint8_t i = 0; i < status; i++) {
 				STATUS_LED_PORT |= (1 << STATUS_LED);
 				_delay_ms(250);
@@ -150,9 +148,9 @@ int main(void) {
 		}
 		
 		// poslání dat na ledbar
-		status = sendToLEDBar(twi, data);
+		status = sendToLEDBar(data);
 		if (status) {
-			twi.stop();
+			twi::stop();
 			for (uint8_t i = 0; i < status; i++) {
 				STATUS_LED_PORT |= (1 << STATUS_LED);
 				_delay_ms(250);

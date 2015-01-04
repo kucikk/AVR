@@ -9,13 +9,8 @@
 #ifndef TWI_H_
 #define TWI_H_
 
-class TWI {
-private:
-	uint32_t cpu;
-	uint32_t clock;
-public:
-	TWI (uint32_t, uint32_t);
-	void init (void);
+namespace twi {
+	void init (uint32_t, uint32_t);
 	void start (void);
 	void stop (void);
 	void write (uint8_t);
